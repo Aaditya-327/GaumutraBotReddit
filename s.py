@@ -1,119 +1,53 @@
 # coding: utf-8
-
-# In[2]:
-
-import os
 import praw
-import time
 import json
-from dropboxUP import upload
-number = 2500
+import time
+import requests
 
-user_data = {"username": os.environ["username"],
-             "password": os.environ["password"],
-             "client_id": os.environ["client_id"],
-             "client_secret": os.environ["client_secret"],
-             "user_agent": "Reddit python extractor by /u/Aad1tya23"}  
-TOKEN = os.environ["dropbox_token"]
-# In[3]:
+callText = "!gaumutra"
 
+url = "https://api.pushshift.io/reddit/search/comment/?q="+callText
+subreddits = ["bakchodi", "nepal", "india", "indiaspeaks", "ioe", "chutyapa"]
+RepTxt = "**बंधू /u/{}, you have been blessed with पवित्र [gaumutra 🍶](https://i.imgur.com/1LZfLRq.jpg) from [गौमातृ 🐄](https://i.imgur.com/SB97oql.jpg)**\n\n卐 requested by /u/{}"
 
-def submissionData(num, submission, now):
-    id_ = submission.id
-    tmp = (now - submission.created_utc)/(60*60)
-    utc_ = int(tmp * 1000)/1000
-    upv_ = submission.score
-    return {"rank": num, "id": id_, "time": utc_, "upvote": upv_}
+reddit = praw.Reddit(username = os.environ["username"],
+                     password = os.environ["password"],
+                    client_id = os.environ["client_id"],
+                    client_secret = os.environ["client_secret"],
+                    user_agent = "GauMatri by /u/Gaumatri")
+print("Authorized: ", reddit.user.me())
 
-def authorize():
-      
-    
-    reddit = praw.Reddit(username = user_data["username"],
-                         password = user_data["password"],
-                        client_id = user_data["client_id"],
-                        client_secret = user_data["client_secret"],
-                        user_agent = user_data["user_agent"])
-    return reddit
+def function(before, after):
+    data = requests.get(url).text
 
+    for _ in range(25):
+        tmp_data = json.loads(data)["data"][_]
+        time_uploaded = now = tmp_data["created_utc"]
 
-# In[4]:
+        if time_uploaded>=before and time_uploaded<after:
+            if callText in tmp_data["body"].lower():
+                if tmp_data["subreddit"].lower() in subreddits:
 
+                    # Gifter and Gifted
+                    son = tmp_data["author"]
+                    father = reddit.comment(tmp_data["id"]).parent().author.name
+                    tmp_RepTxt = RepTxt.format(father, son)
+                    
+                    print(tmp_data["body"], end="\n")                    
+                    submission = reddit.comment(tmp_data["id"])
+                    submission.reply(tmp_RepTxt)   
 
-def get_hot(reddit, now):
-    num = 0
-    data_hot = []
-
-    #Make list of data
-    for _ in reddit.subreddit('all').hot(limit=number):
-        num = num+1
-        if num%100 == 0: print(int(num/100), end=" ")
-        data_hot.append(submissionData(num, _, now))
-    return data_hot
-
-def get_top(reddit, now):
-    num = 0
-    data_top = []
-
-    #Make list of data
-    for _ in reddit.subreddit('all').top("hour"):
-        num = num+1
-        if num%100 == 0: print(int(num/100), end=" ")
-        data_top.append(submissionData(num, _, now))
-    return data_top
-
-
-# In[5]:
-
-
-def output_json(now, data_hot, data_top):
-    #Create empty data.json, start again
-    # json_Data = json.dumps({"filename": []})
-    # with open('data.json', 'w') as outfile:
-    #     json.dump(json_Data, outfile)
-
-    #Save data in json form
-    json_dump = {
-        "time": now,
-        "data_hot": data_hot,
-        "data_top": data_top,
-        "keys": "Id, Hours uploaded, Upvotes"
-    }
-    
-    
-    dropbox_files = upload(TOKEN, str(int(now)), json_dump)
-    return dropbox_files
-
-    
-def main():    
-    reddit = authorize()
-    print("Authorized: ", reddit.user.me())
-
-    now = time.time()
-    print("Hot: ", end="")
-    data_hot = get_hot(reddit, now)
-    print("Top: ", end="")
-    data_top = get_top(reddit, now)
-    print("\nNow uploading to Dropbox...\nFiles: ", end="")
-    files = output_json(now, data_hot, data_top)
-    print(files)
-
-
-
-
-last_did = time.time()
-print("Started at: ", last_did)
-
-# while True:
-#     present = time.time()
-#     if present - last_did > 6*60:
-#         print()
-#         main()
-#         last_did = present
-#     else:
-#         print(".", end=" ")
-#         time.sleep(60* 2)
-
-
+        else:
+            break
+            
 while True:
-    main()
-    time.sleep(3590)
+    data = int(time.time())
+    after = data - data%30
+    before = after - 30
+    time_uploaded = (before+ after)/2
+    
+    if (data - after)>=0 and (data - after)<5:
+        function(before, after)
+        time.sleep(5)
+    else:
+        time.sleep(5)    
