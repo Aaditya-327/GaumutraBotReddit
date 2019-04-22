@@ -27,7 +27,7 @@ def function(before, after):
 
         if time_uploaded>=before and time_uploaded<after:
             if callText in tmp_data["body"].lower():
-                if tmp_data["subreddit"].lower() in subreddits:
+                if tmp_data["subreddit"].lower() in subreddits or True: #Remove or true to limit subreddits
 
                     # Gifter and Gifted
                     son = tmp_data["author"]
